@@ -107,12 +107,12 @@ public class MainActivity extends Activity {
         sp.bottomMargin = 12;
         layout.addView(sheetInput, sp);
 
-        // 保存/示例按钮
+        // 保存/导入按钮
         LinearLayout saveRow = new LinearLayout(this);
         saveRow.setOrientation(LinearLayout.HORIZONTAL);
         saveRow.addView(makeBtn("保存琴谱", v -> saveSheet()));
-        saveRow.addView(makeBtn("小星星", v -> loadExample(1)));
-        saveRow.addView(makeBtn("欢乐颂", v -> loadExample(2)));
+        saveRow.addView(makeBtn("导入曲库", v -> importBuiltinSheets()));
+        saveRow.addView(makeBtn("浏览曲库", v -> showBuiltinPicker()));
         LinearLayout.LayoutParams srp = new LinearLayout.LayoutParams(-1, -2);
         srp.bottomMargin = 16;
         layout.addView(saveRow, srp);
@@ -283,17 +283,37 @@ public class MainActivity extends Activity {
         sheetListAdapter.notifyDataSetChanged();
     }
 
-    private void loadExample(int type) {
-        switch (type) {
-            case 1:
-                nameInput.setText("小星星");
-                sheetInput.setText("1 1 5 5 6 6 5 - 4 4 3 3 2 2 1 - 5 5 4 4 3 3 2 - 5 5 4 4 3 3 2 - 1 1 5 5 6 6 5 - 4 4 3 3 2 2 1 -");
-                break;
-            case 2:
-                nameInput.setText("欢乐颂");
-                sheetInput.setText("3 3 4 5 5 4 3 2 1 1 2 3 3 2 2 - 3 3 4 5 5 4 3 2 1 1 2 3 2 1 1 -");
-                break;
+    /** 导入全部内置曲库 */
+    private void importBuiltinSheets() {
+        List<SheetStore.Sheet> builtin = BuiltinSheets.getAll();
+        int added = 0;
+        for (SheetStore.Sheet s : builtin) {
+            sheetStore.addOrUpdate(s);
+            added++;
         }
+        refreshSheetList();
+        log("已导入 " + added + " 首内置琴谱");
+        Toast.makeText(this, "已导入 " + added + " 首琴谱", Toast.LENGTH_SHORT).show();
+    }
+
+    /** 浏览内置曲库，选择载入 */
+    private void showBuiltinPicker() {
+        List<SheetStore.Sheet> builtin = BuiltinSheets.getAll();
+        String[] names = new String[builtin.size()];
+        for (int i = 0; i < builtin.size(); i++) {
+            names[i] = builtin.get(i).name;
+        }
+        new AlertDialog.Builder(this)
+            .setTitle("内置曲库 (" + names.length + " 首)")
+            .setItems(names, (d, which) -> {
+                SheetStore.Sheet s = builtin.get(which);
+                nameInput.setText(s.name);
+                sheetInput.setText(s.content);
+                log("已载入: " + s.name);
+                Toast.makeText(this, "已载入: " + s.name, Toast.LENGTH_SHORT).show();
+            })
+            .setNegativeButton("取消", null)
+            .show();
     }
 
     // ==================== 悬浮窗 ====================
