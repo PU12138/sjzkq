@@ -156,47 +156,111 @@ function clickCoord(px, py, label) {
     sleep(80);
 }
 
+// 演奏状态机（用 setTimeout 异步调度，不用 threads/sleep，避免ANR）
+var playTimer = null;
+
 function playNotes(notes) {
-    for (var loop = 0; loop < state.loopCount; loop++) {
-        if (!state.isPlaying) break;
-        for (var i = 0; i < notes.length; i++) {
-            while (state.isPaused && state.isPlaying) { sleep(200); }
-            if (!state.isPlaying) break;
+    var loopIdx = 0;
+    var noteIdx = 0;
 
-            var note = notes[i];
-            updateStatus("[" + (i + 1) + "/" + notes.length + "] " + describeNote(note));
-
-            if (note.type === 'rest') {
-                sleep(state.speed);
-                continue;
-            }
-
-            // 切换模式
-            if (state.currentMode !== note.mode) {
-                var target = state.coords.modes[note.mode];
-                updateStatus("切换到 " + modeName(note.mode));
-                clickCoord(target.px, target.py, modeName(note.mode));
-                state.currentMode = note.mode;
-                sleep(state.switchDelay);
-            }
-
-            // 切换低音点
-            if (state.currentPoint !== note.lowPoint) {
-                var pt = state.coords.point;
-                updateStatus("低音点 " + (note.lowPoint ? '开' : '关'));
-                clickCoord(pt.px, pt.py, '低音点');
-                state.currentPoint = note.lowPoint;
-                sleep(150);
-            }
-
-            // 点击音符
-            var nt = state.coords.notes[note.key];
-            if (nt) {
-                clickCoord(nt.px, nt.py, note.key);
-            }
-
-            sleep(state.speed);
+    function nextStep() {
+        if (!state.isPlaying) {
+            onPlayEnd();
+            return;
         }
+        if (state.isPaused) {
+            playTimer = setTimeout(nextStep, 200);
+            return;
+        }
+
+        // 检查循环
+        if (noteIdx >= notes.length) {
+            loopIdx++;
+            if (loopIdx >= state.loopCount) {
+                onPlayEnd();
+                return;
+            }
+            noteIdx = 0;
+        }
+
+        var note = notes[noteIdx];
+        console.log("[" + (noteIdx + 1) + "/" + notes.length + "] " + describeNote(note));
+
+        if (note.type === 'rest') {
+            noteIdx++;
+            playTimer = setTimeout(nextStep, state.speed);
+            return;
+        }
+
+        // 计算本音符需要的步骤和总延时
+        var steps = [];
+
+        // 切换模式
+        if (state.currentMode !== note.mode) {
+            var target = state.coords.modes[note.mode];
+            if (target) {
+                steps.push({ action: 'click', px: target.px, py: target.py, delay: state.switchDelay });
+            }
+            state.currentMode = note.mode;
+        }
+
+        // 切换低音点
+        if (state.currentPoint !== note.lowPoint) {
+            var pt = state.coords.point;
+            if (pt) {
+                steps.push({ action: 'click', px: pt.px, py: pt.py, delay: 150 });
+            }
+            state.currentPoint = note.lowPoint;
+        }
+
+        // 点击音符
+        var nt = state.coords.notes[note.key];
+        if (nt) {
+            steps.push({ action: 'click', px: nt.px, py: nt.py, delay: state.speed });
+        } else {
+            steps.push({ action: 'wait', delay: state.speed });
+        }
+
+        // 顺序执行 steps
+        var stepIdx = 0;
+        function runStep() {
+            if (!state.isPlaying) { onPlayEnd(); return; }
+            if (stepIdx >= steps.length) {
+                noteIdx++;
+                playTimer = setTimeout(nextStep, 0);
+                return;
+            }
+            var step = steps[stepIdx];
+            if (step.action === 'click') {
+                var pos = calcPos(step.px, step.py);
+                console.log("点击 @(" + pos.x + "," + pos.y + ")");
+                try { click(pos.x, pos.y); } catch (e) { console.log("点击失败:" + e); }
+            }
+            stepIdx++;
+            playTimer = setTimeout(runStep, step.delay || state.speed);
+        }
+        runStep();
+    }
+
+    function onPlayEnd() {
+        console.log("=== 演奏结束 ===");
+        state.isPlaying = false;
+        try { ui.btn_start.setText("开始演奏"); } catch (e) {}
+        if (floatyWindow) {
+            try { floatyWindow.ft_play.setText("演奏"); } catch (e) {}
+        }
+        safeToast("演奏完成！");
+    }
+
+    nextStep();
+}
+
+function stopPlay() {
+    state.isPlaying = false;
+    state.isPaused = false;
+    if (playTimer) {
+        clearTimeout(playTimer);
+        playTimer = null;
     }
 }
 
@@ -262,11 +326,10 @@ function createFloaty() {
         });
 
         floatyWindow.ft_stop.click(function() {
-            state.isPlaying = false;
-            state.isPaused = false;
+            stopPlay();
             state.currentMode = 'natural';
             state.currentPoint = false;
-            try { toast("已停止"); } catch (e) {}
+            try { safeToast("已停止"); } catch (e) {}
             floatyWindow.ft_play.setText("演奏");
         });
 
@@ -280,23 +343,19 @@ function createFloaty() {
     }
 }
 
-/** 安全的 toast（子线程也能调用） */
+/** 安全的 toast */
 function safeToast(msg) {
     try {
-        ui.run(function() { toast(msg); });
+        toast(msg);
     } catch (e) {
-        try { toast(msg); } catch (e2) {}
+        console.log("[toast] " + msg);
     }
 }
 
 function updateStatus(text) {
-    if (statusTextView) {
-        try {
-            ui.run(function() { statusTextView.setText(text); });
-        } catch (e) {}
-    } else {
-        log(text);
-    }
+    // 不调用 ui.run（同步阻塞可能导致ANR）
+    // 只记录到控制台
+    console.log("[状态] " + text);
 }
 
 // =================== 主 UI ===================
@@ -382,16 +441,8 @@ ui.ex_mix.click(function() {
 });
 
 function log(msg) {
-    try {
-        ui.run(function() {
-            if (ui.log) {
-                var current = String(ui.log.text() || "");
-                ui.log.setText(current + msg + "\n");
-            }
-        });
-    } catch (e) {
-        // UI 未就绪时忽略
-    }
+    // 注意：不在子线程调用 ui.run（同步阻塞，可能导致ANR）
+    // 只输出到控制台，需要看日志请打开 Auto.js 控制台
     console.log(msg);
 }
 
@@ -436,7 +487,7 @@ ui.btn_start.click(function() {
         }
 
         safeToast("准备演奏：" + notes.length + " 个音符");
-        log("=== 开始演奏 (速度=" + state.speed + "ms, 循环=" + state.loopCount + ") ===");
+        console.log("=== 开始演奏 (速度=" + state.speed + "ms, 循环=" + state.loopCount + ") ===");
 
         // 尝试创建悬浮窗，失败也不影响演奏
         createFloaty();
@@ -446,23 +497,18 @@ ui.btn_start.click(function() {
         state.currentMode = 'natural';
         state.currentPoint = false;
 
-        threads.start(function() {
+        // 3秒倒计时后开始（用setTimeout，不用sleep，不阻塞UI）
+        safeToast("3秒后开始，请切到三角洲游戏！");
+        setTimeout(function() {
             try {
-                safeToast("3秒后开始，请切到三角洲游戏！");
-                sleep(3000);
                 playNotes(notes);
-                log("=== 演奏结束 ===");
-                state.isPlaying = false;
-                ui.run(function() { ui.btn_start.setText("开始演奏"); });
-                if (floatyWindow) floatyWindow.ft_play.setText("演奏");
-                safeToast("演奏完成！");
             } catch (e) {
-                log("演奏错误: " + e);
+                console.log("演奏错误: " + e);
                 safeToast("出错了: " + e);
             }
-        });
+        }, 3000);
     } catch (e) {
-        log("启动错误: " + e);
+        console.log("启动错误: " + e);
         safeToast("启动失败: " + e);
     }
 });
@@ -474,18 +520,16 @@ function startPlay() {
     state.loopCount = parseInt(String(ui.loopCount.getText())) || 1;
 
     var notes = parseSheet(state.sheet);
-    if (!notes.length) { toast("谱子为空"); return; }
+    if (!notes.length) { safeToast("谱子为空"); return; }
 
     state.isPlaying = true;
     state.isPaused = false;
     state.currentMode = 'natural';
     state.currentPoint = false;
 
-    threads.start(function() {
-        try { playNotes(notes); } catch (e) { log("错误: " + e); }
-        state.isPlaying = false;
-        if (floatyWindow) floatyWindow.ft_play.setText("演奏");
-    });
+    setTimeout(function() {
+        try { playNotes(notes); } catch (e) { console.log("错误: " + e); }
+    }, 500);
 }
 
 // =================== 权限检查 ===================
@@ -612,7 +656,7 @@ function startCalibrationOverlay(target) {
         if (idx >= items.length) {
             saveCoords(state.coords);
             toast("标定完成！");
-            ui.run(function() { log("坐标已保存"); });
+            log("坐标已保存");
             return;
         }
 
