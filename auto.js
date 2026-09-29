@@ -91,9 +91,15 @@ var DEFAULT_COORDS = {
 };
 
 // =================== 持久化存储 ===================
-var STORAGE = storages.create("sjzkq_harmonica");
+var STORAGE = null;
+try {
+    STORAGE = storages.create("sjzkq_harmonica");
+} catch (e) {
+    toast("存储初始化失败: " + e);
+}
 
 function loadCoords() {
+    if (!STORAGE) return DEFAULT_COORDS;
     var saved = STORAGE.get("coords", null);
     if (saved) {
         return deepMerge(DEFAULT_COORDS, saved);
@@ -102,7 +108,7 @@ function loadCoords() {
 }
 
 function saveCoords(coords) {
-    STORAGE.put("coords", coords);
+    if (STORAGE) STORAGE.put("coords", coords);
 }
 
 function deepMerge(a, b) {
@@ -125,10 +131,10 @@ function deepMerge(a, b) {
 // =================== 状态 ===================
 var state = {
     coords: loadCoords(),
-    sheet: STORAGE.get("sheet", "1 1 5 5 6 6 5 - 4 4 3 3 2 2 1 -"),
-    speed: STORAGE.get("speed", 400),
-    switchDelay: STORAGE.get("switchDelay", 300),
-    loopCount: STORAGE.get("loopCount", 1),
+    sheet: (STORAGE ? STORAGE.get("sheet", "1 1 5 5 6 6 5 - 4 4 3 3 2 2 1 -") : "1 1 5 5 6 6 5 - 4 4 3 3 2 2 1 -"),
+    speed: (STORAGE ? STORAGE.get("speed", 400) : 400),
+    switchDelay: (STORAGE ? STORAGE.get("switchDelay", 300) : 300),
+    loopCount: (STORAGE ? STORAGE.get("loopCount", 1) : 1),
     isPlaying: false,
     isPaused: false,
     currentMode: 'natural',
@@ -206,19 +212,16 @@ function createFloaty() {
     if (floatyWindow) return;
     floatyWindow = floaty.window(
         <frame gravity="center">
-            <card w="320" h="auto" cornerRadius="12" cardCornerRadius="12"
-                  background="#CC222222" foregroundClickable="true">
+            <card w="320" h="auto" cardCornerRadius="12"
+                  cardBackgroundColor="#CC222222">
                 <vertical padding="12">
                     <text text="口琴演奏器" textColor="#FFAA55" textSize="16sp" gravity="center"/>
                     <text id="ft_status" text="就绪" textColor="#CCCCCC" textSize="12sp"
                           marginTop="6" gravity="center"/>
                     <horizontal marginTop="10" gravity="center">
-                        <button id="ft_play" text="▶ 演奏" w="80" h="36"
-                                style="Widget.AppCompat.Button.Colored"/>
-                        <button id="ft_stop" text="⏹ 停止" w="80" h="36"
-                                style="Widget.AppCompat.Button"/>
-                        <button id="ft_hide" text="隐藏" w="60" h="36"
-                                style="Widget.AppCompat.Button.Borderless"/>
+                        <button id="ft_play" text="演奏" w="80" h="36"/>
+                        <button id="ft_stop" text="停止" w="80" h="36" marginLeft="6"/>
+                        <button id="ft_hide" text="隐藏" w="60" h="36" marginLeft="6"/>
                     </horizontal>
                 </vertical>
             </card>
@@ -238,7 +241,7 @@ function createFloaty() {
     floatyWindow.ft_play.click(function() {
         if (state.isPlaying) {
             state.isPaused = !state.isPaused;
-            floatyWindow.ft_play.setText(state.isPaused ? "▶ 继续" : "⏸ 暂停");
+            floatyWindow.ft_play.setText(state.isPaused ? "继续" : "暂停");
         } else {
             startPlay();
         }
@@ -250,7 +253,7 @@ function createFloaty() {
         state.currentMode = 'natural';
         state.currentPoint = false;
         toast("已停止");
-        floatyWindow.ft_play.setText("▶ 演奏");
+        floatyWindow.ft_play.setText("演奏");
     });
 
     floatyWindow.ft_hide.click(function() {
@@ -278,12 +281,9 @@ ui.layout(
                        bg="#1A1A2E" textSize="14sp" marginTop="6"/>
 
                 <horizontal marginTop="8">
-                    <button id="ex_star" text="小星星" w="auto" h="30"
-                            style="Widget.AppCompat.Button.Borderless" textColor="#667EEA"/>
-                    <button id="ex_twinkle" text="欢乐颂" w="auto" h="30"
-                            style="Widget.AppCompat.Button.Borderless" textColor="#667EEA"/>
-                    <button id="ex_mix" text="升降调示例" w="auto" h="30"
-                            style="Widget.AppCompat.Button.Borderless" textColor="#667EEA"/>
+                    <button id="ex_star" text="小星星" w="auto" h="30" textColor="#667EEA"/>
+                    <button id="ex_twinkle" text="欢乐颂" w="auto" h="30" textColor="#667EEA" marginLeft="6"/>
+                    <button id="ex_mix" text="升降调示例" w="auto" h="30" textColor="#667EEA" marginLeft="6"/>
                 </horizontal>
             </vertical>
         </card>
@@ -297,12 +297,10 @@ ui.layout(
                     <text text="速度(ms)" w="70" textColor="#CCCCCC" textSize="13sp"/>
                     <input id="speed" inputType="number" text="400" w="60" h="36"
                            textColor="#E0E0E0" bg="#1A1A2E" textSize="13sp"/>
-                    <text text="变调延时(ms)" w="90" textColor="#CCCCCC"
-                          textSize="13sp" marginLeft="10"/>
+                    <text text="变调延时" w="70" textColor="#CCCCCC" textSize="13sp" marginLeft="10"/>
                     <input id="switchDelay" inputType="number" text="300" w="60" h="36"
                            textColor="#E0E0E0" bg="#1A1A2E" textSize="13sp"/>
-                    <text text="循环" w="40" textColor="#CCCCCC" textSize="13sp"
-                          marginLeft="10"/>
+                    <text text="循环" w="40" textColor="#CCCCCC" textSize="13sp" marginLeft="10"/>
                     <input id="loopCount" inputType="number" text="1" w="50" h="36"
                            textColor="#E0E0E0" bg="#1A1A2E" textSize="13sp"/>
                 </horizontal>
@@ -310,10 +308,8 @@ ui.layout(
         </card>
 
         <horizontal marginTop="10" gravity="center">
-            <button id="btn_test" text="预览" w="90" h="42"
-                    style="Widget.AppCompat.Button"/>
-            <button id="btn_start" text="开始演奏" w="110" h="42"
-                    style="Widget.AppCompat.Button.Colored" marginLeft="20"/>
+            <button id="btn_test" text="预览" w="90" h="42"/>
+            <button id="btn_start" text="开始演奏" w="110" h="42" marginLeft="20"/>
         </horizontal>
 
         <card w="*" h="auto" margin="0 10 10 0" cardCornerRadius="12"
@@ -323,12 +319,9 @@ ui.layout(
                 <text text="建议先标定一次坐标，确保自动点击准确。"
                       textColor="#888888" textSize="12sp" marginTop="4"/>
                 <horizontal marginTop="8">
-                    <button id="btn_calibrate" text="开始标定" w="100" h="36"
-                            style="Widget.AppCompat.Button.Colored"/>
-                    <button id="btn_viewcoords" text="查看坐标" w="100" h="36"
-                            style="Widget.AppCompat.Button" marginLeft="10"/>
-                    <button id="btn_resetcoords" text="恢复默认" w="100" h="36"
-                            style="Widget.AppCompat.Button" marginLeft="10"/>
+                    <button id="btn_calibrate" text="开始标定" w="100" h="36"/>
+                    <button id="btn_viewcoords" text="查看坐标" w="100" h="36" marginLeft="10"/>
+                    <button id="btn_resetcoords" text="恢复默认" w="100" h="36" marginLeft="10"/>
                 </horizontal>
             </vertical>
         </card>
@@ -337,9 +330,9 @@ ui.layout(
               cardBackgroundColor="#222244" marginTop="8">
             <vertical padding="12">
                 <text text="运行日志" textColor="#FFAA55" textSize="14sp"/>
-                <ScrollView h="120" marginTop="6">
+                <scroll h="120" marginTop="6">
                     <text id="log" text="" textColor="#00FF88" textSize="12sp"/>
-                </ScrollView>
+                </scroll>
             </vertical>
         </card>
     </vertical>
@@ -357,9 +350,15 @@ ui.ex_mix.click(function() {
 });
 
 function log(msg) {
-    ui.run(function() {
-        ui.log.setText((ui.log.text() || "") + msg + "\n");
-    });
+    try {
+        ui.run(function() {
+            if (ui.log) {
+                ui.log.setText((ui.log.text() || "") + msg + "\n");
+            }
+        });
+    } catch (e) {
+        // UI 未就绪时忽略
+    }
     console.log(msg);
 }
 
@@ -389,10 +388,12 @@ ui.btn_start.click(function() {
     state.switchDelay = parseInt(ui.switchDelay.getText()) || 300;
     state.loopCount = parseInt(ui.loopCount.getText()) || 1;
 
-    STORAGE.put("sheet", state.sheet);
-    STORAGE.put("speed", state.speed);
-    STORAGE.put("switchDelay", state.switchDelay);
-    STORAGE.put("loopCount", state.loopCount);
+    if (STORAGE) {
+        STORAGE.put("sheet", state.sheet);
+        STORAGE.put("speed", state.speed);
+        STORAGE.put("switchDelay", state.switchDelay);
+        STORAGE.put("loopCount", state.loopCount);
+    }
 
     var notes = parseSheet(state.sheet);
     if (!notes.length) {
@@ -409,16 +410,16 @@ ui.btn_start.click(function() {
     state.currentMode = 'natural';
     state.currentPoint = false;
 
-    toast("3秒后开始自动演奏，请切到三角洲游戏！");
-    sleep(3000);
-
     threads.start(function() {
         try {
+            // 在子线程里倒计时，不阻塞UI
+            toast("3秒后开始自动演奏，请切到三角洲游戏！");
+            sleep(3000);
             playNotes(notes);
             log("=== 演奏结束 ===");
             state.isPlaying = false;
             ui.run(function() { ui.btn_start.setText("开始演奏"); });
-            if (floatyWindow) floatyWindow.ft_play.setText("▶ 演奏");
+            if (floatyWindow) floatyWindow.ft_play.setText("演奏");
             toast("演奏完成！");
         } catch (e) {
             log("错误: " + e);
@@ -444,34 +445,56 @@ function startPlay() {
     threads.start(function() {
         try { playNotes(notes); } catch (e) { log("错误: " + e); }
         state.isPlaying = false;
-        if (floatyWindow) floatyWindow.ft_play.setText("▶ 演奏");
+        if (floatyWindow) floatyWindow.ft_play.setText("演奏");
     });
 }
 
 // =================== 权限检查 ===================
 function requestPermission() {
-    if (auto.service && auto.service.enabled) {
-        if (!auto.service.connected) {
-            dialogs.confirm("需要无障碍服务",
-                "请先在设置中开启无障碍服务，然后返回本脚本点击确定继续。",
-                function(ok) {
-                    if (ok) auto.settings();
-                });
-            return false;
+    // 检查无障碍服务
+    var hasAccessibility = false;
+    try {
+        if (typeof auto !== 'undefined' && auto.service) {
+            if (typeof auto.service.connected === 'boolean') {
+                hasAccessibility = auto.service.connected;
+            } else if (typeof auto.service.enabled === 'boolean') {
+                hasAccessibility = auto.service.enabled;
+            } else {
+                hasAccessibility = true; // 假设已连接
+            }
         }
-    } else {
+    } catch (e) {
+        log("无障碍检查异常: " + e);
+    }
+
+    if (!hasAccessibility) {
         dialogs.confirm("需要无障碍服务",
-            "请先在设置中开启无障碍服务，然后返回本脚本点击确定继续。",
+            "请先在系统设置中开启 Auto.js 的无障碍服务，然后返回本脚本点击确定继续。",
             function(ok) {
-                if (ok) settings.openAccessibilitySettings();
+                if (ok) {
+                    try {
+                        if (typeof auto !== 'undefined' && auto.settings) {
+                            auto.settings();
+                        } else if (typeof settings !== 'undefined') {
+                            settings.openAccessibilitySettings();
+                        }
+                    } catch (e) {
+                        toast("请手动到设置里开启无障碍服务");
+                    }
+                }
             });
         return false;
     }
 
-    if (!floaty.hasPermission()) {
-        toast("需要悬浮窗权限");
-        floaty.requestPermission();
-        return false;
+    // 检查悬浮窗权限
+    try {
+        if (!floaty.hasPermission()) {
+            toast("需要悬浮窗权限");
+            floaty.requestPermission();
+            return false;
+        }
+    } catch (e) {
+        log("悬浮窗检查异常: " + e);
     }
 
     return true;
@@ -511,7 +534,10 @@ function runCalibration() {
     );
     if (target < 0) return;
 
-    startCalibrationOverlay(target);
+    // 标定流程里有 sleep，必须在子线程运行，不能阻塞 UI 线程
+    threads.start(function() {
+        startCalibrationOverlay(target);
+    });
 }
 
 /**
@@ -574,7 +600,7 @@ function startCalibrationOverlay(target) {
                     </card>
                 </vertical>
 
-                <frame id="marker" w="60" h="60" bg="#88FF0000" cornerRadius="30">
+                <frame id="marker" w="60" h="60" bg="#88FF0000">
                     <text w="*" h="*" text="++" textColor="#FFFFFF" textSize="20sp"
                           gravity="center"/>
                 </frame>
@@ -660,15 +686,24 @@ function startCalibrationOverlay(target) {
     showNext();
 }
 
-// =================== 启动时自动加载 ===================
-threads.start(function() {
-    var firstRun = STORAGE.get("firstRun", true);
-    if (firstRun) {
-        ui.run(function() { log("欢迎使用三角洲口琴自动演奏器！"); });
-        ui.run(function() { log("请先在系统设置里授权："); });
-        ui.run(function() { log("   1. 无障碍服务"); });
-        ui.run(function() { log("   2. 悬浮窗权限"); });
-        ui.run(function() { log("建议首次使用先点击「坐标标定」"); });
-        STORAGE.put("firstRun", false);
+// =================== 启动初始化 ===================
+// 注意：在 "ui" 模式下，UI 线程正在渲染界面，
+// 不能在这里启动新线程立即调用 ui.run（会导致白屏）
+// 用 setTimeout 延迟到 UI 渲染完成后再执行
+setTimeout(function() {
+    try {
+        var firstRun = STORAGE ? STORAGE.get("firstRun", true) : true;
+        if (firstRun) {
+            log("欢迎使用三角洲口琴自动演奏器！");
+            log("请先开启：无障碍服务 + 悬浮窗权限");
+            log("建议首次使用先点击「坐标标定」");
+            if (STORAGE) STORAGE.put("firstRun", false);
+        }
+        // 加载上次保存的谱子
+        if (state.sheet) {
+            ui.sheet.setText(state.sheet);
+        }
+    } catch (e) {
+        log("初始化错误: " + e);
     }
-});
+}, 500);
