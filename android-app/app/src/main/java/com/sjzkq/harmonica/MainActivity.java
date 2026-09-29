@@ -6,6 +6,7 @@ import android.os.Build;
 import android.os.Bundle;
 import android.provider.Settings;
 import android.text.method.ScrollingMovementMethod;
+import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
@@ -29,7 +30,29 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
+
+        // 全局异常捕获，崩溃时显示错误信息
+        Thread.setDefaultUncaughtExceptionHandler((t, e) -> {
+            e.printStackTrace();
+            runOnUiThread(() -> {
+                new android.app.AlertDialog.Builder(this)
+                        .setTitle("应用崩溃")
+                        .setMessage(Log.getStackTraceString(e))
+                        .setPositiveButton("确定", null)
+                        .show();
+            });
+        });
+
+        try {
+            setContentView(R.layout.activity_main);
+        } catch (Exception e) {
+            new android.app.AlertDialog.Builder(this)
+                    .setTitle("界面加载失败")
+                    .setMessage(Log.getStackTraceString(e))
+                    .setPositiveButton("确定", null)
+                    .show();
+            return;
+        }
 
         coordStore = new CoordStore(this);
 
