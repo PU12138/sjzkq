@@ -1,6 +1,6 @@
 /**
  * ============================================================
- *  三角洲行动 · 口琴自动演奏器 (Auto.js / Hamibot 脚本)
+ *  三角洲行动 口琴自动演奏器 (Auto.js / Hamibot 脚本)
  *  作者: sjzkq
  *  使用: 在手机上安装 Auto.js 或 Hamibot，导入本脚本运行
  *  兼容: 经典 Auto.js (Rhino 引擎) - ES5 语法
@@ -51,7 +51,7 @@ function parseSheet(text) {
 
         var key = null;
         if (/^[1-7]$/.test(raw)) key = raw;
-        else if (raw.toLowerCase() === 'i' || raw === '·') key = 'i';
+        else if (raw.toLowerCase() === 'i') key = 'i';
         else continue;
 
         notes.push({ type: 'note', key: key, mode: mode, lowPoint: lowPoint });
@@ -195,8 +195,8 @@ function playNotes(notes) {
 }
 
 function describeNote(n) {
-    if (n.type === 'rest') return '⟳ 休止';
-    return modeName(n.mode) + ' ' + n.key + (n.lowPoint ? '·' : '');
+    if (n.type === 'rest') return '休止';
+    return modeName(n.mode) + ' ' + n.key + (n.lowPoint ? '(低)' : '');
 }
 
 function modeName(m) {
@@ -374,7 +374,7 @@ ui.btn_test.click(function() {
         if (n.type === 'rest') {
             log("  " + (i + 1) + ". 休止");
         } else {
-            log("  " + (i + 1) + ". " + modeName(n.mode) + " " + n.key + (n.lowPoint ? '·' : ''));
+            log("  " + (i + 1) + ". " + modeName(n.mode) + " " + n.key + (n.lowPoint ? '(低)' : ''));
         }
     }
     toast("预览完成，共 " + notes.length + " 个音符");
