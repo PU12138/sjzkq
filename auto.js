@@ -295,13 +295,13 @@ ui.layout(
 
                 <horizontal marginTop="8" gravity="center_vertical">
                     <text text="速度(ms)" w="70" textColor="#CCCCCC" textSize="13sp"/>
-                    <input id="speed" inputType="number" text="400" w="60" h="36"
+                    <input id="speed" text="400" w="60" h="36"
                            textColor="#E0E0E0" bg="#1A1A2E" textSize="13sp"/>
                     <text text="变调延时" w="70" textColor="#CCCCCC" textSize="13sp" marginLeft="10"/>
-                    <input id="switchDelay" inputType="number" text="300" w="60" h="36"
+                    <input id="switchDelay" text="300" w="60" h="36"
                            textColor="#E0E0E0" bg="#1A1A2E" textSize="13sp"/>
                     <text text="循环" w="40" textColor="#CCCCCC" textSize="13sp" marginLeft="10"/>
-                    <input id="loopCount" inputType="number" text="1" w="50" h="36"
+                    <input id="loopCount" text="1" w="50" h="36"
                            textColor="#E0E0E0" bg="#1A1A2E" textSize="13sp"/>
                 </horizontal>
             </vertical>
@@ -692,18 +692,10 @@ function startCalibrationOverlay(target) {
 // 用 setTimeout 延迟到 UI 渲染完成后再执行
 setTimeout(function() {
     try {
-        var firstRun = STORAGE ? STORAGE.get("firstRun", true) : true;
-        if (firstRun) {
-            log("欢迎使用三角洲口琴自动演奏器！");
-            log("请先开启：无障碍服务 + 悬浮窗权限");
-            log("建议首次使用先点击「坐标标定」");
-            if (STORAGE) STORAGE.put("firstRun", false);
-        }
-        // 加载上次保存的谱子
-        if (state.sheet) {
-            ui.sheet.setText(state.sheet);
-        }
+        log("脚本启动成功！");
+        log("请先开启：无障碍服务 + 悬浮窗权限");
+        log("首次使用请点击「开始标定」校准坐标");
     } catch (e) {
-        log("初始化错误: " + e);
+        // 忽略，UI 可能还没完全就绪
     }
-}, 500);
+}, 800);
