@@ -1,20 +1,16 @@
 /**
  * ============================================================
- *  三角洲行动 · 口琴自动演奏器 (Auto.js 脚本)
+ *  三角洲行动 · 口琴自动演奏器 (Auto.js / Hamibot 脚本)
  *  作者: sjzkq
- *  使用: 在手机上安装 Auto.js / Hamibot，导入本脚本运行
+ *  使用: 在手机上安装 Auto.js 或 Hamibot，导入本脚本运行
+ *  兼容: 经典 Auto.js (Rhino 引擎) - ES5 语法
  * ============================================================
  *
  *  前置要求:
  *  1. 安卓手机 7.0+
- *  2. 安装 Auto.js (免费版) 或 Hamibot
- *  3. 开启 Auto.js 的【无障碍服务】和【悬浮窗权限】
+ *  2. 安装 Auto.js 或 Hamibot
+ *  3. 开启无障碍服务 + 悬浮窗权限
  *  4. 手机横屏，三角洲游戏内打开口琴自动演奏界面
- *
- *  坐标标定:
- *  脚本首次运行时会引导你标定屏幕坐标。
- *  不同手机分辨率、不同游戏内界面位置可能有差异，
- *  建议首次使用后在"坐标微调"里校准一下。
  * ============================================================
  */
 
@@ -22,48 +18,51 @@
 
 // =================== 工具函数 ===================
 
-/** 谱子解析器 (复用 Web 版逻辑) */
+/** 谱子解析器 */
 function parseSheet(text) {
     if (!text || !text.trim()) return [];
-    const tokens = text
+    var tokens = text
         .replace(/[，、]/g, ' ')
         .replace(/[\n\r]+/g, ' ')
         .split(/\s+/)
-        .filter(t => t.length > 0);
+        .filter(function(t) { return t.length > 0; });
 
-    const notes = [];
-    for (let raw of tokens) {
+    var notes = [];
+    for (var i = 0; i < tokens.length; i++) {
+        var raw = tokens[i];
         if (raw === '_' || raw === '-' || raw === '|') {
             notes.push({ type: 'rest' });
             continue;
         }
 
-        let mode = 'natural';
-        let lowPoint = false;
+        var mode = 'natural';
+        var lowPoint = false;
 
-        if (raw.startsWith('.')) { raw = raw.substring(1); }
+        if (raw.indexOf('.') === 0) { raw = raw.substring(1); }
 
-        if (raw.startsWith('#')) { mode = 'sharp'; raw = raw.substring(1); }
-        else if (raw.startsWith('b') || raw.startsWith('B')) { mode = 'flat'; raw = raw.substring(1); }
-        else if (raw.startsWith('h') || raw.startsWith('H')) { mode = 'half'; raw = raw.substring(1); }
+        if (raw.indexOf('#') === 0) { mode = 'sharp'; raw = raw.substring(1); }
+        else if (raw.indexOf('b') === 0 || raw.indexOf('B') === 0) { mode = 'flat'; raw = raw.substring(1); }
+        else if (raw.indexOf('h') === 0 || raw.indexOf('H') === 0) { mode = 'half'; raw = raw.substring(1); }
 
-        if (raw.endsWith('.')) { lowPoint = true; raw = raw.substring(0, raw.length - 1); }
+        if (raw.lastIndexOf('.') === raw.length - 1 && raw.length > 1) {
+            lowPoint = true;
+            raw = raw.substring(0, raw.length - 1);
+        }
 
-        let key = null;
+        var key = null;
         if (/^[1-7]$/.test(raw)) key = raw;
         else if (raw.toLowerCase() === 'i' || raw === '·') key = 'i';
         else continue;
 
-        notes.push({ type: 'note', key, mode, lowPoint });
+        notes.push({ type: 'note', key: key, mode: mode, lowPoint: lowPoint });
     }
     return notes;
 }
 
 /** 根据屏幕百分比计算绝对坐标 (横屏) */
 function calcPos(percentX, percentY) {
-    // 横屏时 width > height
-    const w = Math.max(device.width, device.height);
-    const h = Math.min(device.width, device.height);
+    var w = Math.max(device.width, device.height);
+    var h = Math.min(device.width, device.height);
     return {
         x: Math.round(w * percentX),
         y: Math.round(h * percentY)
@@ -71,17 +70,13 @@ function calcPos(percentX, percentY) {
 }
 
 // =================== 三角洲口琴坐标定义 ===================
-// 横屏默认百分比坐标（可在悬浮窗内微调）
-// 基于 1920x1080 横屏截图估算
-const DEFAULT_COORDS = {
-    // 模式切换按钮 (按从左到右排列)
+var DEFAULT_COORDS = {
     modes: {
-        half:    { px: 0.30, py: 0.41 },  // 半音
-        sharp:   { px: 0.40, py: 0.41 },  // 升调
-        natural: { px: 0.52, py: 0.41 },  // 自然音
-        flat:    { px: 0.63, py: 0.41 },  // 降调
+        half:    { px: 0.30, py: 0.41 },
+        sharp:   { px: 0.40, py: 0.41 },
+        natural: { px: 0.52, py: 0.41 },
+        flat:    { px: 0.63, py: 0.41 },
     },
-    // 音符按钮 1-7 + i (从左到右)
     notes: {
         '1': { px: 0.23, py: 0.60 },
         '2': { px: 0.31, py: 0.60 },
@@ -92,17 +87,15 @@ const DEFAULT_COORDS = {
         '7': { px: 0.71, py: 0.60 },
         'i': { px: 0.80, py: 0.60 },
     },
-    // 低音点按钮 (音符行下方)
     point: { px: 0.12, py: 0.73 },
 };
 
 // =================== 持久化存储 ===================
-const STORAGE = storages.create("sjzkq_harmonica");
+var STORAGE = storages.create("sjzkq_harmonica");
 
 function loadCoords() {
-    const saved = STORAGE.get("coords", null);
+    var saved = STORAGE.get("coords", null);
     if (saved) {
-        // 浅合并，兼容后续新增字段
         return deepMerge(DEFAULT_COORDS, saved);
     }
     return DEFAULT_COORDS;
@@ -113,20 +106,24 @@ function saveCoords(coords) {
 }
 
 function deepMerge(a, b) {
-    const result = {};
-    for (const k in a) {
-        result[k] = typeof a[k] === 'object' && !Array.isArray(a[k])
-            ? deepMerge(a[k], (b && b[k]) || {})
-            : a[k];
+    var result = {};
+    for (var k in a) {
+        if (typeof a[k] === 'object' && !Array.isArray(a[k])) {
+            result[k] = deepMerge(a[k], (b && b[k]) || {});
+        } else {
+            result[k] = a[k];
+        }
     }
-    if (b) for (const k in b) {
-        if (!(k in result)) result[k] = b[k];
+    if (b) {
+        for (var k2 in b) {
+            if (!(k2 in result)) result[k2] = b[k2];
+        }
     }
     return result;
 }
 
 // =================== 状态 ===================
-let state = {
+var state = {
     coords: loadCoords(),
     sheet: STORAGE.get("sheet", "1 1 5 5 6 6 5 - 4 4 3 3 2 2 1 -"),
     speed: STORAGE.get("speed", 400),
@@ -139,24 +136,23 @@ let state = {
 };
 
 // =================== 演奏引擎 ===================
-const ModeMap = { natural: 'natural', sharp: 'sharp', flat: 'flat', half: 'half' };
 
 function clickCoord(px, py, label) {
-    const pos = calcPos(px, py);
-    log(`  → 点击 [${label}] @ (${pos.x}, ${pos.y})`);
+    var pos = calcPos(px, py);
+    log("  -> 点击 [" + label + "] @ (" + pos.x + ", " + pos.y + ")");
     click(pos.x, pos.y);
-    sleep(80); // 给游戏一点响应时间
+    sleep(80);
 }
 
-async function playNotes(notes) {
-    for (let loop = 0; loop < state.loopCount; loop++) {
+function playNotes(notes) {
+    for (var loop = 0; loop < state.loopCount; loop++) {
         if (!state.isPlaying) break;
-        for (let i = 0; i < notes.length; i++) {
+        for (var i = 0; i < notes.length; i++) {
             while (state.isPaused && state.isPlaying) { sleep(200); }
             if (!state.isPlaying) break;
 
-            const note = notes[i];
-            updateStatus(`[${i + 1}/${notes.length}] ${describeNote(note)}`);
+            var note = notes[i];
+            updateStatus("[" + (i + 1) + "/" + notes.length + "] " + describeNote(note));
 
             if (note.type === 'rest') {
                 sleep(state.speed);
@@ -165,8 +161,8 @@ async function playNotes(notes) {
 
             // 切换模式
             if (state.currentMode !== note.mode) {
-                const target = state.coords.modes[note.mode];
-                updateStatus(`切换到 ${modeName(note.mode)}`);
+                var target = state.coords.modes[note.mode];
+                updateStatus("切换到 " + modeName(note.mode));
                 clickCoord(target.px, target.py, modeName(note.mode));
                 state.currentMode = note.mode;
                 sleep(state.switchDelay);
@@ -174,15 +170,15 @@ async function playNotes(notes) {
 
             // 切换低音点
             if (state.currentPoint !== note.lowPoint) {
-                const pt = state.coords.point;
-                updateStatus(`低音点 ${note.lowPoint ? '开' : '关'}`);
-                clickCoord(pt.px, pt.py, note.lowPoint ? '低音点' : '低音点');
+                var pt = state.coords.point;
+                updateStatus("低音点 " + (note.lowPoint ? '开' : '关'));
+                clickCoord(pt.px, pt.py, '低音点');
                 state.currentPoint = note.lowPoint;
                 sleep(150);
             }
 
             // 点击音符
-            const nt = state.coords.notes[note.key];
+            var nt = state.coords.notes[note.key];
             if (nt) {
                 clickCoord(nt.px, nt.py, note.key);
             }
@@ -194,16 +190,17 @@ async function playNotes(notes) {
 
 function describeNote(n) {
     if (n.type === 'rest') return '⟳ 休止';
-    return `${modeName(n.mode)} ${n.key}${n.lowPoint ? '·' : ''}`;
+    return modeName(n.mode) + ' ' + n.key + (n.lowPoint ? '·' : '');
 }
 
 function modeName(m) {
-    return { natural: '自然', sharp: '升调', flat: '降调', half: '半音' }[m] || m;
+    var names = { natural: '自然', sharp: '升调', flat: '降调', half: '半音' };
+    return names[m] || m;
 }
 
 // =================== 悬浮窗 ===================
-let floatyWindow = null;
-let statusTextView = null;
+var floatyWindow = null;
+var statusTextView = null;
 
 function createFloaty() {
     if (floatyWindow) return;
@@ -212,8 +209,7 @@ function createFloaty() {
             <card w="320" h="auto" cornerRadius="12" cardCornerRadius="12"
                   background="#CC222222" foregroundClickable="true">
                 <vertical padding="12">
-                    <text text="🎵 口琴演奏器" textColor="#FFAA55" textSize="16sp"
-                          gravity="center"/>
+                    <text text="口琴演奏器" textColor="#FFAA55" textSize="16sp" gravity="center"/>
                     <text id="ft_status" text="就绪" textColor="#CCCCCC" textSize="12sp"
                           marginTop="6" gravity="center"/>
                     <horizontal marginTop="10" gravity="center">
@@ -231,7 +227,6 @@ function createFloaty() {
 
     statusTextView = floatyWindow.ft_status;
 
-    // 悬浮窗拖动
     floatyWindow.setTouchable(true);
     floatyWindow.addTouchListener(function(view, event) {
         if (event.getAction() === event.ACTION_MOVE) {
@@ -272,36 +267,31 @@ function updateStatus(text) {
 // =================== 主 UI ===================
 ui.layout(
     <vertical padding="16" bg="#1A1A2E">
-        <text text="🎵 三角洲口琴自动演奏" textColor="#FFAA55" textSize="20sp"
+        <text text="三角洲口琴自动演奏" textColor="#FFAA55" textSize="20sp"
               gravity="center" marginTop="8"/>
 
-        {/* 谱子输入 */}
         <card w="*" h="auto" margin="0 10 10 0" cardCornerRadius="12"
               cardBackgroundColor="#222244">
             <vertical padding="12">
-                <text text="📝 口琴谱" textColor="#FFAA55" textSize="14sp"/>
+                <text text="口琴谱" textColor="#FFAA55" textSize="14sp"/>
                 <input id="sheet" text="" w="*" h="100" textColor="#E0E0E0"
                        bg="#1A1A2E" textSize="14sp" marginTop="6"/>
 
                 <horizontal marginTop="8">
                     <button id="ex_star" text="小星星" w="auto" h="30"
-                            style="Widget.AppCompat.Button.Borderless"
-                            textColor="#667EEA"/>
+                            style="Widget.AppCompat.Button.Borderless" textColor="#667EEA"/>
                     <button id="ex_twinkle" text="欢乐颂" w="auto" h="30"
-                            style="Widget.AppCompat.Button.Borderless"
-                            textColor="#667EEA"/>
+                            style="Widget.AppCompat.Button.Borderless" textColor="#667EEA"/>
                     <button id="ex_mix" text="升降调示例" w="auto" h="30"
-                            style="Widget.AppCompat.Button.Borderless"
-                            textColor="#667EEA"/>
+                            style="Widget.AppCompat.Button.Borderless" textColor="#667EEA"/>
                 </horizontal>
             </vertical>
         </card>
 
-        {/* 参数设置 */}
         <card w="*" h="auto" margin="0 10 10 0" cardCornerRadius="12"
               cardBackgroundColor="#222244">
             <vertical padding="12">
-                <text text="⚙️ 演奏参数" textColor="#FFAA55" textSize="14sp"/>
+                <text text="演奏参数" textColor="#FFAA55" textSize="14sp"/>
 
                 <horizontal marginTop="8" gravity="center_vertical">
                     <text text="速度(ms)" w="70" textColor="#CCCCCC" textSize="13sp"/>
@@ -319,37 +309,34 @@ ui.layout(
             </vertical>
         </card>
 
-        {/* 操作按钮 */}
         <horizontal marginTop="10" gravity="center">
-            <button id="btn_test" text="🔍 预览" w="90" h="42"
+            <button id="btn_test" text="预览" w="90" h="42"
                     style="Widget.AppCompat.Button"/>
-            <button id="btn_start" text="▶ 开始演奏" w="110" h="42"
+            <button id="btn_start" text="开始演奏" w="110" h="42"
                     style="Widget.AppCompat.Button.Colored" marginLeft="20"/>
         </horizontal>
 
-        {/* 坐标管理 */}
         <card w="*" h="auto" margin="0 10 10 0" cardCornerRadius="12"
               cardBackgroundColor="#222244" marginTop="12">
             <vertical padding="12">
-                <text text="📍 坐标标定" textColor="#FFAA55" textSize="14sp"/>
+                <text text="坐标标定" textColor="#FFAA55" textSize="14sp"/>
                 <text text="建议先标定一次坐标，确保自动点击准确。"
                       textColor="#888888" textSize="12sp" marginTop="4"/>
                 <horizontal marginTop="8">
-                    <button id="btn_calibrate" text="🎯 开始标定" w="100" h="36"
+                    <button id="btn_calibrate" text="开始标定" w="100" h="36"
                             style="Widget.AppCompat.Button.Colored"/>
-                    <button id="btn_viewcoords" text="📋 查看坐标" w="100" h="36"
+                    <button id="btn_viewcoords" text="查看坐标" w="100" h="36"
                             style="Widget.AppCompat.Button" marginLeft="10"/>
-                    <button id="btn_resetcoords" text="🔄 恢复默认" w="100" h="36"
+                    <button id="btn_resetcoords" text="恢复默认" w="100" h="36"
                             style="Widget.AppCompat.Button" marginLeft="10"/>
                 </horizontal>
             </vertical>
         </card>
 
-        {/* 日志区 */}
         <card w="*" h="auto" margin="0 10 10 0" cardCornerRadius="12"
               cardBackgroundColor="#222244" marginTop="8">
             <vertical padding="12">
-                <text text="📊 运行日志" textColor="#FFAA55" textSize="14sp"/>
+                <text text="运行日志" textColor="#FFAA55" textSize="14sp"/>
                 <ScrollView h="120" marginTop="6">
                     <text id="log" text="" textColor="#00FF88" textSize="12sp"/>
                 </ScrollView>
@@ -359,32 +346,42 @@ ui.layout(
 );
 
 // =================== UI 事件 ===================
-ui.ex_star.click(() => ui.sheet.setText("1 1 5 5 6 6 5 - 4 4 3 3 2 2 1 -"));
-ui.ex_twinkle.click(() => ui.sheet.setText("3 3 4 5 5 4 3 2 1 1 2 3 3 2 2 -"));
-ui.ex_mix.click(() => ui.sheet.setText("#1 #2 #3 #4 #5 - b3 b6 b7 - 1. 2. 3. 4. 5."));
+ui.ex_star.click(function() {
+    ui.sheet.setText("1 1 5 5 6 6 5 - 4 4 3 3 2 2 1 -");
+});
+ui.ex_twinkle.click(function() {
+    ui.sheet.setText("3 3 4 5 5 4 3 2 1 1 2 3 3 2 2 -");
+});
+ui.ex_mix.click(function() {
+    ui.sheet.setText("#1 #2 #3 #4 #5 - b3 b6 b7 - 1. 2. 3. 4. 5.");
+});
 
 function log(msg) {
-    ui.run(() => {
+    ui.run(function() {
         ui.log.setText((ui.log.text() || "") + msg + "\n");
     });
     console.log(msg);
 }
 
-ui.btn_test.click(() => {
-    const notes = parseSheet(ui.sheet.getText());
+ui.btn_test.click(function() {
+    var notes = parseSheet(ui.sheet.getText());
     if (!notes.length) {
         toast("谱子为空或无法解析");
         return;
     }
-    log(`解析成功: ${notes.length} 个音符`);
-    notes.forEach((n, i) => {
-        if (n.type === 'rest') log(`  ${i + 1}. ⟳ 休止`);
-        else log(`  ${i + 1}. ${modeName(n.mode)} ${n.key}${n.lowPoint ? '·' : ''}`);
-    });
-    toast(`预览完成，共 ${notes.length} 个音符`);
+    log("解析成功: " + notes.length + " 个音符");
+    for (var i = 0; i < notes.length; i++) {
+        var n = notes[i];
+        if (n.type === 'rest') {
+            log("  " + (i + 1) + ". 休止");
+        } else {
+            log("  " + (i + 1) + ". " + modeName(n.mode) + " " + n.key + (n.lowPoint ? '·' : ''));
+        }
+    }
+    toast("预览完成，共 " + notes.length + " 个音符");
 });
 
-ui.btn_start.click(() => {
+ui.btn_start.click(function() {
     if (!requestPermission()) return;
 
     state.sheet = ui.sheet.getText();
@@ -397,23 +394,21 @@ ui.btn_start.click(() => {
     STORAGE.put("switchDelay", state.switchDelay);
     STORAGE.put("loopCount", state.loopCount);
 
-    const notes = parseSheet(state.sheet);
+    var notes = parseSheet(state.sheet);
     if (!notes.length) {
         toast("谱子为空或无法解析");
         return;
     }
 
-    toast(`准备演奏：${notes.length} 个音符`);
-    log(`=== 开始演奏 (速度=${state.speed}ms, 循环=${state.loopCount}) ===`);
+    toast("准备演奏：" + notes.length + " 个音符");
+    log("=== 开始演奏 (速度=" + state.speed + "ms, 循环=" + state.loopCount + ") ===");
 
-    // 切到游戏
     createFloaty();
     state.isPlaying = true;
     state.isPaused = false;
     state.currentMode = 'natural';
     state.currentPoint = false;
 
-    // 建议用户手动切到游戏，这里 sleep 3 秒给切换时间
     toast("3秒后开始自动演奏，请切到三角洲游戏！");
     sleep(3000);
 
@@ -422,7 +417,7 @@ ui.btn_start.click(() => {
             playNotes(notes);
             log("=== 演奏结束 ===");
             state.isPlaying = false;
-            ui.run(() => ui.btn_start.setText("▶ 开始演奏"));
+            ui.run(function() { ui.btn_start.setText("开始演奏"); });
             if (floatyWindow) floatyWindow.ft_play.setText("▶ 演奏");
             toast("演奏完成！");
         } catch (e) {
@@ -438,7 +433,7 @@ function startPlay() {
     state.switchDelay = parseInt(ui.switchDelay.getText()) || 300;
     state.loopCount = parseInt(ui.loopCount.getText()) || 1;
 
-    const notes = parseSheet(state.sheet);
+    var notes = parseSheet(state.sheet);
     if (!notes.length) { toast("谱子为空"); return; }
 
     state.isPlaying = true;
@@ -456,20 +451,18 @@ function startPlay() {
 // =================== 权限检查 ===================
 function requestPermission() {
     if (auto.service && auto.service.enabled) {
-        // 检查无障碍是否开启
         if (!auto.service.connected) {
             dialogs.confirm("需要无障碍服务",
-                "请先在设置中开启 Auto.js 的无障碍服务，然后返回本脚本点击确定继续。",
-                (ok) => {
+                "请先在设置中开启无障碍服务，然后返回本脚本点击确定继续。",
+                function(ok) {
                     if (ok) auto.settings();
                 });
             return false;
         }
     } else {
-        // 旧版 Auto.js
         dialogs.confirm("需要无障碍服务",
-            "请先在设置中开启 Auto.js 的无障碍服务，然后返回本脚本点击确定继续。",
-            (ok) => {
+            "请先在设置中开启无障碍服务，然后返回本脚本点击确定继续。",
+            function(ok) {
                 if (ok) settings.openAccessibilitySettings();
             });
         return false;
@@ -485,43 +478,39 @@ function requestPermission() {
 }
 
 // =================== 坐标标定 ===================
-// 标定流程：依次展示每个按钮名，用户手动切到游戏界面，
-// 然后悬浮窗提供"已就位，开始标定"按钮
-ui.btn_calibrate.click(() => runCalibration());
+ui.btn_calibrate.click(function() { runCalibration(); });
 
-ui.btn_viewcoords.click(() => {
-    const c = state.coords;
-    const lines = [];
+ui.btn_viewcoords.click(function() {
+    var c = state.coords;
+    var lines = [];
     lines.push("=== 当前坐标 (百分比) ===");
     lines.push("【模式按钮】");
-    for (const k in c.modes) {
-        lines.push(`  ${modeName(k)}: (${(c.modes[k].px * 100).toFixed(1)}%, ${(c.modes[k].py * 100).toFixed(1)}%)`);
+    for (var k in c.modes) {
+        lines.push("  " + modeName(k) + ": (" + (c.modes[k].px * 100).toFixed(1) + "%, " + (c.modes[k].py * 100).toFixed(1) + "%)");
     }
     lines.push("【音符按钮】");
-    for (const k in c.notes) {
-        lines.push(`  ${k}: (${(c.notes[k].px * 100).toFixed(1)}%, ${(c.notes[k].py * 100).toFixed(1)}%)`);
+    for (var k2 in c.notes) {
+        lines.push("  " + k2 + ": (" + (c.notes[k2].px * 100).toFixed(1) + "%, " + (c.notes[k2].py * 100).toFixed(1) + "%)");
     }
     lines.push("【低音点】");
-    lines.push(`  point: (${(c.point.px * 100).toFixed(1)}%, ${(c.point.py * 100).toFixed(1)}%)`);
+    lines.push("  point: (" + (c.point.px * 100).toFixed(1) + "%, " + (c.point.py * 100).toFixed(1) + "%)");
 
     dialogs.alert("当前坐标", lines.join("\n"));
 });
 
-ui.btn_resetcoords.click(() => {
+ui.btn_resetcoords.click(function() {
     state.coords = DEFAULT_COORDS;
     saveCoords(state.coords);
     toast("已恢复默认坐标");
 });
 
 function runCalibration() {
-    const target = dialogs.select(
+    var target = dialogs.select(
         "标定哪个按钮？",
         ["模式按钮组", "音符按钮组(1-7+i)", "低音点按钮", "全部重新标定"]
     );
     if (target < 0) return;
 
-    // 标定思路：弹出大按钮在屏幕上覆盖，让用户手动对比游戏界面位置
-    // 更好的方式：启动一个全屏半透明覆盖层，逐个点
     startCalibrationOverlay(target);
 }
 
@@ -532,8 +521,7 @@ function runCalibration() {
 function startCalibrationOverlay(target) {
     toast("即将启动标定覆盖层");
 
-    // 定义需要标定的项
-    const items = [];
+    var items = [];
     if (target === 0 || target === 3) {
         items.push({ group: 'modes', key: 'natural', label: '自然音' });
         items.push({ group: 'modes', key: 'sharp', label: '升调' });
@@ -541,42 +529,41 @@ function startCalibrationOverlay(target) {
         items.push({ group: 'modes', key: 'half', label: '半音' });
     }
     if (target === 1 || target === 3) {
-        ['1', '2', '3', '4', '5', '6', '7', 'i'].forEach(k => {
-            items.push({ group: 'notes', key: k, label: `音符 ${k}` });
-        });
+        var noteKeys = ['1', '2', '3', '4', '5', '6', '7', 'i'];
+        for (var i = 0; i < noteKeys.length; i++) {
+            items.push({ group: 'notes', key: noteKeys[i], label: '音符 ' + noteKeys[i] });
+        }
     }
     if (target === 2 || target === 3) {
         items.push({ group: 'point', key: 'point', label: '低音点' });
     }
 
-    // 切到游戏
     toast("3秒后请切到三角洲游戏界面，横屏打开口琴演奏界面");
     sleep(3000);
 
-    let idx = 0;
+    var idx = 0;
 
     function showNext() {
         if (idx >= items.length) {
             saveCoords(state.coords);
-            toast("✅ 标定完成！");
-            ui.run(() => log("坐标已保存"));
+            toast("标定完成！");
+            ui.run(function() { log("坐标已保存"); });
             return;
         }
 
-        const item = items[idx];
-        const cur = calcPos(
+        var item = items[idx];
+        var cur = calcPos(
             state.coords[item.group][item.key].px,
             state.coords[item.group][item.key].py
         );
 
-        // 显示一个可拖动的标记按钮
-        const overlay = floaty.rawWindow(
+        var overlay = floaty.rawWindow(
             <frame bg="#66FF0000">
                 <vertical w="*" h="*" gravity="center">
                     <card w="auto" h="auto" cardCornerRadius="10"
                           cardBackgroundColor="#CC222222" padding="12">
                         <vertical>
-                            <text text={`标定 (${idx + 1}/${items.length})`}
+                            <text text={"标定 (" + (idx + 1) + "/" + items.length + ")"}
                                   textColor="#FFAA55" textSize="14sp" gravity="center"/>
                             <text text={item.label} textColor="#FF8888"
                                   textSize="22sp" gravity="center" marginTop="4"/>
@@ -587,49 +574,46 @@ function startCalibrationOverlay(target) {
                     </card>
                 </vertical>
 
-                {/* 可拖动的标记点 */}
                 <frame id="marker" w="60" h="60" bg="#88FF0000" cornerRadius="30">
                     <text w="*" h="*" text="++" textColor="#FFFFFF" textSize="20sp"
                           gravity="center"/>
                 </frame>
 
-                {/* 确认按钮 */}
-                <frame id="confirmBtn" w="120" h="44" bg="#FFAA2255"
-                       x="0" y="1000">
-                    <text w="*" h="*" text="✓ 确认位置" textColor="#FFFFFF"
+                <frame id="confirmBtn" w="120" h="44" bg="#FFAA2255">
+                    <text w="*" h="*" text="确认位置" textColor="#FFFFFF"
                           textSize="14sp" gravity="center"/>
                 </frame>
-                <frame id="skipBtn" w="80" h="44" bg="#888888" x="140" y="1000">
+                <frame id="skipBtn" w="80" h="44" bg="#888888">
                     <text w="*" h="*" text="跳过" textColor="#FFFFFF"
                           textSize="14sp" gravity="center"/>
                 </frame>
-                <frame id="cancelBtn" w="80" h="44" bg="#FF4444" x="230" y="1000">
+                <frame id="cancelBtn" w="80" h="44" bg="#FF4444">
                     <text w="*" h="*" text="取消" textColor="#FFFFFF"
                           textSize="14sp" gravity="center"/>
                 </frame>
             </frame>
         );
 
-        const w = Math.max(device.width, device.height);
-        const h = Math.min(device.width, device.height);
+        var w = Math.max(device.width, device.height);
+        var h = Math.min(device.width, device.height);
 
         overlay.setTouchable(true);
         overlay.setPosition(0, 0);
         overlay.setSize(w, h);
 
-        // 把标记点拖到当前估计位置
         overlay.marker.setPosition(cur.x - 30, cur.y - 30);
-        // 按钮放底部
         overlay.confirmBtn.setPosition(w - 260, h - 80);
         overlay.skipBtn.setPosition(w - 140, h - 80);
         overlay.cancelBtn.setPosition(w - 50, h - 80);
 
-        // 拖动标记点
-        let markerOffset = null;
+        var markerOffset = null;
         overlay.marker.setOnTouchListener(function(view, event) {
             switch (event.getAction()) {
                 case event.ACTION_DOWN:
-                    markerOffset = { dx: event.getRawX() - view.getX(), dy: event.getRawY() - view.getY() };
+                    markerOffset = {
+                        dx: event.getRawX() - view.getX(),
+                        dy: event.getRawY() - view.getY()
+                    };
                     break;
                 case event.ACTION_MOVE:
                     if (markerOffset) {
@@ -643,12 +627,11 @@ function startCalibrationOverlay(target) {
 
         overlay.confirmBtn.setOnTouchListener(function(view, event) {
             if (event.getAction() === event.ACTION_UP) {
-                // 记录位置
-                const mx = overlay.marker.getX() + 30;
-                const my = overlay.marker.getY() + 30;
-                const px = mx / w;
-                const py = my / h;
-                state.coords[item.group][item.key] = { px, py };
+                var mx = overlay.marker.getX() + 30;
+                var my = overlay.marker.getY() + 30;
+                var px = mx / w;
+                var py = my / h;
+                state.coords[item.group][item.key] = { px: px, py: py };
                 overlay.close();
                 idx++;
                 showNext();
@@ -679,14 +662,13 @@ function startCalibrationOverlay(target) {
 
 // =================== 启动时自动加载 ===================
 threads.start(function() {
-    // 首次使用引导
-    const firstRun = STORAGE.get("firstRun", true);
+    var firstRun = STORAGE.get("firstRun", true);
     if (firstRun) {
-        ui.run(() => log("👋 欢迎使用三角洲口琴自动演奏器！"));
-        ui.run(() => log("⚠️ 请先在系统设置里授权："));
-        ui.run(() => log("   1. Auto.js 无障碍服务"));
-        ui.run(() => log("   2. Auto.js 悬浮窗权限"));
-        ui.run(() => log("📍 建议首次使用先点击「坐标标定」"));
+        ui.run(function() { log("欢迎使用三角洲口琴自动演奏器！"); });
+        ui.run(function() { log("请先在系统设置里授权："); });
+        ui.run(function() { log("   1. 无障碍服务"); });
+        ui.run(function() { log("   2. 悬浮窗权限"); });
+        ui.run(function() { log("建议首次使用先点击「坐标标定」"); });
         STORAGE.put("firstRun", false);
     }
 });
