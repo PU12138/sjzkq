@@ -20,8 +20,10 @@
 
 /** 谱子解析器 */
 function parseSheet(text) {
-    if (!text || !text.trim()) return [];
-    var tokens = text
+    // 转成 JS 字符串（ui.getText 返回 Java String，不支持 trim/replace 正则）
+    var s = String(text || "");
+    if (!s || /^\s*$/.test(s)) return [];
+    var tokens = s
         .replace(/[，、]/g, ' ')
         .replace(/[\n\r]+/g, ' ')
         .split(/\s+/)
@@ -353,7 +355,8 @@ function log(msg) {
     try {
         ui.run(function() {
             if (ui.log) {
-                ui.log.setText((ui.log.text() || "") + msg + "\n");
+                var current = String(ui.log.text() || "");
+                ui.log.setText(current + msg + "\n");
             }
         });
     } catch (e) {
@@ -383,10 +386,10 @@ ui.btn_test.click(function() {
 ui.btn_start.click(function() {
     if (!requestPermission()) return;
 
-    state.sheet = ui.sheet.getText();
-    state.speed = parseInt(ui.speed.getText()) || 400;
-    state.switchDelay = parseInt(ui.switchDelay.getText()) || 300;
-    state.loopCount = parseInt(ui.loopCount.getText()) || 1;
+    state.sheet = String(ui.sheet.getText());
+    state.speed = parseInt(String(ui.speed.getText())) || 400;
+    state.switchDelay = parseInt(String(ui.switchDelay.getText())) || 300;
+    state.loopCount = parseInt(String(ui.loopCount.getText())) || 1;
 
     if (STORAGE) {
         STORAGE.put("sheet", state.sheet);
@@ -429,10 +432,10 @@ ui.btn_start.click(function() {
 });
 
 function startPlay() {
-    state.sheet = ui.sheet.getText();
-    state.speed = parseInt(ui.speed.getText()) || 400;
-    state.switchDelay = parseInt(ui.switchDelay.getText()) || 300;
-    state.loopCount = parseInt(ui.loopCount.getText()) || 1;
+    state.sheet = String(ui.sheet.getText());
+    state.speed = parseInt(String(ui.speed.getText())) || 400;
+    state.switchDelay = parseInt(String(ui.switchDelay.getText())) || 300;
+    state.loopCount = parseInt(String(ui.loopCount.getText())) || 1;
 
     var notes = parseSheet(state.sheet);
     if (!notes.length) { toast("谱子为空"); return; }
