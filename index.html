@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>三角洲口琴自动演奏器</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>🎵 三角洲口琴自动演奏器</h1>
+
+        <!-- 设置面板 -->
+        <div class="panel">
+            <h2>⚙️ 演奏设置</h2>
+            <div class="settings">
+                <div class="setting-item">
+                    <label>演奏速度 (ms/音符):</label>
+                    <input type="number" id="speed" value="400" min="100" max="2000" step="50">
+                </div>
+                <div class="setting-item">
+                    <label>变调切换延时 (ms):</label>
+                    <input type="number" id="switchDelay" value="300" min="50" max="1000" step="50">
+                </div>
+                <div class="setting-item">
+                    <label>重复次数:</label>
+                    <input type="number" id="loopCount" value="1" min="1" max="100">
+                </div>
+                <div class="setting-item">
+                    <label>演奏模式:</label>
+                    <select id="playMode">
+                        <option value="keyboard">键盘模拟</option>
+                        <option value="preview" selected>界面预览</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <!-- 口琴谱输入 -->
+        <div class="panel">
+            <h2>📝 口琴谱输入</h2>
+            <div class="tabs">
+                <button class="tab-btn active" data-tab="text">文本输入</button>
+                <button class="tab-btn" data-tab="file">上传文件</button>
+            </div>
+            <div id="text-tab" class="tab-content active">
+                <textarea id="sheetMusic" placeholder="输入口琴谱，例如：&#10;1 2 3 4 5 6 7 i&#10;#1 #2 #3 #4 #5&#10;b3 b6 b7&#10;1. 2. 3. 4. 5. 6. 7.&#10;.1 .2 .3 .4 .5 .6 .7"></textarea>
+            </div>
+            <div id="file-tab" class="tab-content">
+                <input type="file" id="fileUpload" accept=".txt,.music,.sheet">
+                <p class="hint">支持 .txt 格式的口琴谱文件</p>
+            </div>
+
+            <div class="examples">
+                <h3>🎼 示例谱:</h3>
+                <button class="example-btn" data-ex="star">小星星</button>
+                <button class="example-btn" data-ex="twinkle">欢乐颂</button>
+                <button class="example-btn" data-ex="ode">生日快乐</button>
+                <button class="example-btn" data-ex="mix">含升降调示例</button>
+            </div>
+
+            <div class="notation-help">
+                <h4>📖 符号说明:</h4>
+                <ul>
+                    <li><code>1-7</code> - 自然音（do re mi fa sol la si）</li>
+                    <li><code>i</code> - 高音1（do·）</li>
+                    <li><code>#</code> 前缀 - 升调（如 #1）</li>
+                    <li><code>b</code> 前缀 - 降调（如 b3）</li>
+                    <li><code>.</code> 后缀 - 低音点（如 1.）</li>
+                    <li><code>.</code> 前缀 - 更高音点（如 .1）</li>
+                    <li><code>空格/换行</code> - 分隔音符</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- 预览区 -->
+        <div class="panel">
+            <h2>🎹 口琴界面预览</h2>
+            <div class="harmonica-preview">
+                <div class="mode-buttons">
+                    <button class="mode-btn" data-mode="natural">自然音</button>
+                    <button class="mode-btn" data-mode="sharp">升调</button>
+                    <button class="mode-btn" data-mode="flat">降调</button>
+                    <button class="mode-btn" data-mode="half">半音</button>
+                </div>
+                <div class="note-buttons">
+                    <button class="note-btn" data-note="1">1</button>
+                    <button class="note-btn" data-note="2">2</button>
+                    <button class="note-btn" data-note="3">3</button>
+                    <button class="note-btn" data-note="4">4</button>
+                    <button class="note-btn" data-note="5">5</button>
+                    <button class="note-btn" data-note="6">6</button>
+                    <button class="note-btn" data-note="7">7</button>
+                    <button class="note-btn" data-note="i">i</button>
+                </div>
+                <div class="point-indicator">
+                    <button class="note-btn small" data-note="point">.</button>
+                    <span id="pointState">· 低音点关闭</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 控制按钮 -->
+        <div class="panel controls">
+            <button id="btnParse" class="btn btn-secondary">🔍 解析谱子</button>
+            <button id="btnPlay" class="btn btn-primary">▶️ 开始演奏</button>
+            <button id="btnStop" class="btn btn-danger">⏹️ 停止</button>
+            <button id="btnPause" class="btn btn-warning">⏸️ 暂停</button>
+        </div>
+
+        <!-- 状态显示 -->
+        <div class="panel">
+            <h2>📊 演奏状态</h2>
+            <div id="status" class="status">等待开始...</div>
+            <div id="progress" class="progress-bar">
+                <div id="progressFill" class="progress-fill"></div>
+            </div>
+            <div id="currentNote" class="current-note">--</div>
+        </div>
+
+        <!-- 解析结果 -->
+        <div class="panel">
+            <h2>📋 解析后的音符序列</h2>
+            <div id="parsedNotes" class="parsed-notes">暂无数据</div>
+        </div>
+
+        <!-- 按键映射说明 -->
+        <div class="panel">
+            <h2>⌨️ 键盘映射 (键盘模拟模式)</h2>
+            <table class="keymap">
+                <thead>
+                    <tr><th>按键</th><th>功能</th></tr>
+                </thead>
+                <tbody>
+                    <tr><td>1 2 3 4 5 6 7 8</td><td>音符 1-7 + 高音i</td></tr>
+                    <tr><td>` (反引号)</td><td>低音点 .</td></tr>
+                    <tr><td>Q W E R</td><td>切换：自然/升/降/半音</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>

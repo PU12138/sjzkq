@@ -1,0 +1,444 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif;
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+    color: #e0e0e0;
+    min-height: 100vh;
+    padding: 20px;
+}
+
+.container {
+    max-width: 900px;
+    margin: 0 auto;
+}
+
+h1 {
+    text-align: center;
+    font-size: 2em;
+    margin-bottom: 20px;
+    background: linear-gradient(90deg, #e94560, #f39c12);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+h2 {
+    font-size: 1.2em;
+    margin-bottom: 15px;
+    color: #f39c12;
+    border-bottom: 2px solid #e94560;
+    padding-bottom: 8px;
+}
+
+h3, h4 {
+    margin: 10px 0;
+    color: #e0e0e0;
+}
+
+.panel {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 20px;
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.settings {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 15px;
+}
+
+.setting-item {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.setting-item label {
+    font-size: 0.9em;
+    color: #aaa;
+}
+
+.setting-item input,
+.setting-item select {
+    padding: 8px 12px;
+    border-radius: 6px;
+    border: 1px solid #444;
+    background: #2a2a4a;
+    color: #e0e0e0;
+    font-size: 1em;
+}
+
+.setting-item input:focus,
+.setting-item select:focus {
+    outline: none;
+    border-color: #e94560;
+}
+
+.tabs {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 15px;
+}
+
+.tab-btn {
+    padding: 10px 20px;
+    background: rgba(255, 255, 255, 0.1);
+    border: none;
+    border-radius: 6px;
+    color: #e0e0e0;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.tab-btn.active {
+    background: #e94560;
+    color: white;
+}
+
+.tab-content {
+    display: none;
+}
+
+.tab-content.active {
+    display: block;
+}
+
+textarea {
+    width: 100%;
+    height: 150px;
+    padding: 12px;
+    border-radius: 8px;
+    border: 1px solid #444;
+    background: #1a1a2e;
+    color: #e0e0e0;
+    font-family: 'Consolas', monospace;
+    font-size: 1em;
+    resize: vertical;
+}
+
+textarea:focus {
+    outline: none;
+    border-color: #e94560;
+}
+
+#fileUpload {
+    padding: 10px;
+    background: #2a2a4a;
+    border-radius: 6px;
+    color: #e0e0e0;
+    border: 1px dashed #444;
+    cursor: pointer;
+    width: 100%;
+}
+
+.hint {
+    font-size: 0.85em;
+    color: #888;
+    margin-top: 8px;
+}
+
+.examples {
+    margin-top: 15px;
+    padding: 12px;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 8px;
+}
+
+.example-btn {
+    padding: 6px 14px;
+    margin: 4px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border: none;
+    border-radius: 5px;
+    color: white;
+    cursor: pointer;
+    transition: transform 0.2s;
+}
+
+.example-btn:hover {
+    transform: scale(1.05);
+}
+
+.notation-help {
+    margin-top: 15px;
+    padding: 12px;
+    background: rgba(233, 69, 96, 0.1);
+    border-radius: 8px;
+    border-left: 3px solid #e94560;
+}
+
+.notation-help ul {
+    list-style: none;
+    padding: 0;
+}
+
+.notation-help li {
+    padding: 3px 0;
+    font-size: 0.9em;
+    color: #bbb;
+}
+
+.notation-help code {
+    background: #2a2a4a;
+    padding: 2px 6px;
+    border-radius: 3px;
+    color: #f39c12;
+}
+
+/* 口琴预览 */
+.harmonica-preview {
+    padding: 20px;
+    background: linear-gradient(180deg, #2a2a3a 0%, #1a1a2a 100%);
+    border-radius: 12px;
+}
+
+.mode-buttons {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.mode-btn {
+    padding: 12px 24px;
+    font-size: 1em;
+    font-weight: bold;
+    border: 2px solid #555;
+    border-radius: 25px;
+    background: rgba(255, 255, 255, 0.05);
+    color: #aaa;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.mode-btn:hover {
+    border-color: #777;
+    color: #ccc;
+}
+
+.mode-btn.active {
+    border-color: #f39c12;
+    color: #f39c12;
+    background: rgba(243, 156, 18, 0.15);
+    box-shadow: 0 0 15px rgba(243, 156, 18, 0.3);
+}
+
+.note-buttons {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+    margin-bottom: 15px;
+}
+
+.note-btn {
+    width: 70px;
+    height: 70px;
+    font-size: 1.5em;
+    font-weight: bold;
+    border: none;
+    border-radius: 50%;
+    background: linear-gradient(145deg, #3a3a5a, #2a2a4a);
+    color: #e0e0e0;
+    cursor: pointer;
+    transition: all 0.15s;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3),
+                inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+.note-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.4);
+}
+
+.note-btn.active {
+    background: linear-gradient(145deg, #e94560, #c23a4f);
+    transform: scale(0.92);
+    box-shadow: 0 0 20px rgba(233, 69, 96, 0.6);
+    color: white;
+}
+
+.note-btn.small {
+    width: 50px;
+    height: 50px;
+    font-size: 1.2em;
+}
+
+.point-indicator {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 15px;
+    font-size: 0.9em;
+    color: #888;
+}
+
+/* 控制按钮 */
+.controls {
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+    flex-wrap: wrap;
+}
+
+.btn {
+    padding: 12px 30px;
+    font-size: 1em;
+    font-weight: bold;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, #27ae60, #2ecc71);
+    color: white;
+}
+
+.btn-secondary {
+    background: linear-gradient(135deg, #3498db, #2980b9);
+    color: white;
+}
+
+.btn-danger {
+    background: linear-gradient(135deg, #c0392b, #e74c3c);
+    color: white;
+}
+
+.btn-warning {
+    background: linear-gradient(135deg, #f39c12, #f1c40f);
+    color: #333;
+}
+
+.btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+}
+
+/* 状态区 */
+.status {
+    font-size: 1.1em;
+    margin-bottom: 12px;
+    padding: 10px;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 6px;
+    text-align: center;
+}
+
+.progress-bar {
+    width: 100%;
+    height: 8px;
+    background: #333;
+    border-radius: 4px;
+    overflow: hidden;
+    margin-bottom: 12px;
+}
+
+.progress-fill {
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(90deg, #e94560, #f39c12);
+    transition: width 0.3s;
+}
+
+.current-note {
+    text-align: center;
+    font-size: 3em;
+    font-weight: bold;
+    color: #f39c12;
+    text-shadow: 0 0 20px rgba(243, 156, 18, 0.5);
+}
+
+/* 解析结果 */
+.parsed-notes {
+    max-height: 200px;
+    overflow-y: auto;
+    padding: 12px;
+    background: #1a1a2e;
+    border-radius: 8px;
+    font-family: 'Consolas', monospace;
+    font-size: 0.9em;
+    line-height: 1.8;
+}
+
+.parsed-notes .note-item {
+    display: inline-block;
+    padding: 4px 10px;
+    margin: 3px;
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: 5px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.parsed-notes .note-item.current {
+    background: #e94560;
+    border-color: #f39c12;
+    color: white;
+}
+
+.parsed-notes::-webkit-scrollbar {
+    width: 8px;
+}
+
+.parsed-notes::-webkit-scrollbar-track {
+    background: #222;
+}
+
+.parsed-notes::-webkit-scrollbar-thumb {
+    background: #555;
+    border-radius: 4px;
+}
+
+/* 按键映射表格 */
+.keymap {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.keymap th,
+.keymap td {
+    padding: 10px 15px;
+    text-align: left;
+    border-bottom: 1px solid #333;
+}
+
+.keymap th {
+    background: rgba(233, 69, 96, 0.2);
+    color: #f39c12;
+}
+
+.keymap td:first-child {
+    font-family: 'Consolas', monospace;
+    color: #2ecc71;
+}
+
+/* 动画 */
+@keyframes pulse {
+    0%, 100% { box-shadow: 0 0 10px rgba(233, 69, 96, 0.5); }
+    50% { box-shadow: 0 0 25px rgba(233, 69, 96, 0.9); }
+}
+
+.note-btn.active {
+    animation: pulse 0.3s ease-in-out;
+}
+
+/* 响应式 */
+@media (max-width: 600px) {
+    h1 { font-size: 1.5em; }
+    .note-btn { width: 50px; height: 50px; font-size: 1.2em; }
+    .mode-btn { padding: 8px 14px; font-size: 0.85em; }
+}
