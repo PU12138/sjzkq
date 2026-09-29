@@ -1,9 +1,7 @@
 <resources>
-    <style name="Theme.DeltaHarmonica" parent="Theme.AppCompat.Light.NoActionBar">
-        <item name="colorPrimary">@color/accent</item>
-        <item name="colorPrimaryDark">@color/btn_primary</item>
-        <item name="colorAccent">@color/accent</item>
-        <item name="android:statusBarColor">@color/bg_dark</item>
-        <item name="android:windowBackground">@color/bg_dark</item>
+    <style name="Theme.DeltaHarmonica" parent="android:Theme.Material.NoActionBar">
+        <item name="android:statusBarColor">#FF1A1A2E</item>
+        <item name="android:windowBackground">#FF1A1A2E</item>
+        <item name="android:colorPrimary">#FFA940</item>
     </style>
 </resources>
