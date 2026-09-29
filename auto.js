@@ -148,7 +148,11 @@ var state = {
 function clickCoord(px, py, label) {
     var pos = calcPos(px, py);
     log("  -> 点击 [" + label + "] @ (" + pos.x + ", " + pos.y + ")");
-    click(pos.x, pos.y);
+    try {
+        click(pos.x, pos.y);
+    } catch (e) {
+        log("点击失败: " + e);
+    }
     sleep(80);
 }
 
@@ -212,61 +216,87 @@ var statusTextView = null;
 
 function createFloaty() {
     if (floatyWindow) return;
-    floatyWindow = floaty.window(
-        <frame gravity="center">
-            <card w="320" h="auto" cardCornerRadius="12"
-                  cardBackgroundColor="#CC222222">
-                <vertical padding="12">
-                    <text text="口琴演奏器" textColor="#FFAA55" textSize="16sp" gravity="center"/>
-                    <text id="ft_status" text="就绪" textColor="#CCCCCC" textSize="12sp"
-                          marginTop="6" gravity="center"/>
-                    <horizontal marginTop="10" gravity="center">
-                        <button id="ft_play" text="演奏" w="80" h="36"/>
-                        <button id="ft_stop" text="停止" w="80" h="36" marginLeft="6"/>
-                        <button id="ft_hide" text="隐藏" w="60" h="36" marginLeft="6"/>
-                    </horizontal>
-                </vertical>
-            </card>
-        </frame>
-    );
+    try {
+        floatyWindow = floaty.window(
+            <frame gravity="center">
+                <card w="320" h="auto" cardCornerRadius="12"
+                      cardBackgroundColor="#CC222222">
+                    <vertical padding="12">
+                        <text text="口琴演奏器" textColor="#FFAA55" textSize="16sp" gravity="center"/>
+                        <text id="ft_status" text="就绪" textColor="#CCCCCC" textSize="12sp"
+                              marginTop="6" gravity="center"/>
+                        <horizontal marginTop="10" gravity="center">
+                            <button id="ft_play" text="演奏" w="80" h="36"/>
+                            <button id="ft_stop" text="停止" w="80" h="36" marginLeft="6"/>
+                            <button id="ft_hide" text="隐藏" w="60" h="36" marginLeft="6"/>
+                        </horizontal>
+                    </vertical>
+                </card>
+            </frame>
+        );
 
-    statusTextView = floatyWindow.ft_status;
+        statusTextView = floatyWindow.ft_status;
 
-    floatyWindow.setTouchable(true);
-    floatyWindow.addTouchListener(function(view, event) {
-        if (event.getAction() === event.ACTION_MOVE) {
-            floatyWindow.setPosition(parseInt(event.getRawX()) - 160, parseInt(event.getRawY()) - 40);
+        try { floatyWindow.setTouchable(true); } catch (e) {}
+
+        try {
+            floatyWindow.addTouchListener(function(view, event) {
+                try {
+                    if (event.getAction() === event.ACTION_MOVE) {
+                        floatyWindow.setPosition(parseInt(event.getRawX()) - 160, parseInt(event.getRawY()) - 40);
+                    }
+                } catch (e) {}
+                return true;
+            });
+        } catch (e) {
+            log("addTouchListener 不支持: " + e);
         }
-        return true;
-    });
 
-    floatyWindow.ft_play.click(function() {
-        if (state.isPlaying) {
-            state.isPaused = !state.isPaused;
-            floatyWindow.ft_play.setText(state.isPaused ? "继续" : "暂停");
-        } else {
-            startPlay();
-        }
-    });
+        floatyWindow.ft_play.click(function() {
+            if (state.isPlaying) {
+                state.isPaused = !state.isPaused;
+                floatyWindow.ft_play.setText(state.isPaused ? "继续" : "暂停");
+            } else {
+                startPlay();
+            }
+        });
 
-    floatyWindow.ft_stop.click(function() {
-        state.isPlaying = false;
-        state.isPaused = false;
-        state.currentMode = 'natural';
-        state.currentPoint = false;
-        toast("已停止");
-        floatyWindow.ft_play.setText("演奏");
-    });
+        floatyWindow.ft_stop.click(function() {
+            state.isPlaying = false;
+            state.isPaused = false;
+            state.currentMode = 'natural';
+            state.currentPoint = false;
+            try { toast("已停止"); } catch (e) {}
+            floatyWindow.ft_play.setText("演奏");
+        });
 
-    floatyWindow.ft_hide.click(function() {
-        floatyWindow.close();
+        floatyWindow.ft_hide.click(function() {
+            floatyWindow.close();
+            floatyWindow = null;
+        });
+    } catch (e) {
+        log("悬浮窗创建失败: " + e);
         floatyWindow = null;
-    });
+    }
+}
+
+/** 安全的 toast（子线程也能调用） */
+function safeToast(msg) {
+    try {
+        ui.run(function() { toast(msg); });
+    } catch (e) {
+        try { toast(msg); } catch (e2) {}
+    }
 }
 
 function updateStatus(text) {
-    if (statusTextView) statusTextView.setText(text);
-    else log(text);
+    if (statusTextView) {
+        try {
+            ui.run(function() { statusTextView.setText(text); });
+        } catch (e) {}
+    } else {
+        log(text);
+    }
 }
 
 // =================== 主 UI ===================
@@ -384,51 +414,57 @@ ui.btn_test.click(function() {
 });
 
 ui.btn_start.click(function() {
-    if (!requestPermission()) return;
+    try {
+        if (!requestPermission()) return;
 
-    state.sheet = String(ui.sheet.getText());
-    state.speed = parseInt(String(ui.speed.getText())) || 400;
-    state.switchDelay = parseInt(String(ui.switchDelay.getText())) || 300;
-    state.loopCount = parseInt(String(ui.loopCount.getText())) || 1;
+        state.sheet = String(ui.sheet.getText());
+        state.speed = parseInt(String(ui.speed.getText())) || 400;
+        state.switchDelay = parseInt(String(ui.switchDelay.getText())) || 300;
+        state.loopCount = parseInt(String(ui.loopCount.getText())) || 1;
 
-    if (STORAGE) {
-        STORAGE.put("sheet", state.sheet);
-        STORAGE.put("speed", state.speed);
-        STORAGE.put("switchDelay", state.switchDelay);
-        STORAGE.put("loopCount", state.loopCount);
-    }
-
-    var notes = parseSheet(state.sheet);
-    if (!notes.length) {
-        toast("谱子为空或无法解析");
-        return;
-    }
-
-    toast("准备演奏：" + notes.length + " 个音符");
-    log("=== 开始演奏 (速度=" + state.speed + "ms, 循环=" + state.loopCount + ") ===");
-
-    createFloaty();
-    state.isPlaying = true;
-    state.isPaused = false;
-    state.currentMode = 'natural';
-    state.currentPoint = false;
-
-    threads.start(function() {
-        try {
-            // 在子线程里倒计时，不阻塞UI
-            toast("3秒后开始自动演奏，请切到三角洲游戏！");
-            sleep(3000);
-            playNotes(notes);
-            log("=== 演奏结束 ===");
-            state.isPlaying = false;
-            ui.run(function() { ui.btn_start.setText("开始演奏"); });
-            if (floatyWindow) floatyWindow.ft_play.setText("演奏");
-            toast("演奏完成！");
-        } catch (e) {
-            log("错误: " + e);
-            toast("出错了: " + e);
+        if (STORAGE) {
+            STORAGE.put("sheet", state.sheet);
+            STORAGE.put("speed", state.speed);
+            STORAGE.put("switchDelay", state.switchDelay);
+            STORAGE.put("loopCount", state.loopCount);
         }
-    });
+
+        var notes = parseSheet(state.sheet);
+        if (!notes.length) {
+            safeToast("谱子为空或无法解析");
+            return;
+        }
+
+        safeToast("准备演奏：" + notes.length + " 个音符");
+        log("=== 开始演奏 (速度=" + state.speed + "ms, 循环=" + state.loopCount + ") ===");
+
+        // 尝试创建悬浮窗，失败也不影响演奏
+        createFloaty();
+
+        state.isPlaying = true;
+        state.isPaused = false;
+        state.currentMode = 'natural';
+        state.currentPoint = false;
+
+        threads.start(function() {
+            try {
+                safeToast("3秒后开始，请切到三角洲游戏！");
+                sleep(3000);
+                playNotes(notes);
+                log("=== 演奏结束 ===");
+                state.isPlaying = false;
+                ui.run(function() { ui.btn_start.setText("开始演奏"); });
+                if (floatyWindow) floatyWindow.ft_play.setText("演奏");
+                safeToast("演奏完成！");
+            } catch (e) {
+                log("演奏错误: " + e);
+                safeToast("出错了: " + e);
+            }
+        });
+    } catch (e) {
+        log("启动错误: " + e);
+        safeToast("启动失败: " + e);
+    }
 });
 
 function startPlay() {
