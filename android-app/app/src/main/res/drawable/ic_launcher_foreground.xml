@@ -1,0 +1,18 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- 口琴主体 -->
+    <path
+        android:fillColor="#FFA940"
+        android:pathData="M20,40 L88,40 L88,68 L20,68 Z" />
+    <!-- 吹口格子 -->
+    <path
+        android:fillColor="#FF1A1A2E"
+        android:pathData="M28,46 L34,46 L34,62 L28,62 Z M38,46 L44,46 L44,62 L38,62 Z M48,46 L54,46 L54,62 L48,62 Z M58,46 L64,46 L64,62 L58,62 Z M68,46 L74,46 L74,62 L68,62 Z M78,46 L80,46 L80,62 L78,62 Z" />
+    <!-- 音符装饰 -->
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M54,20 L54,40 M50,38 Q54,34 58,38 Q54,42 50,38 Z" />
+</vector>

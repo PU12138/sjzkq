@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name">三角洲口琴</string>
+    <string name="accessibility_desc">用于自动演奏三角洲行动游戏中的口琴，需要点击屏幕权限</string>
+</resources>

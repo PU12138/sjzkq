@@ -1,0 +1,9 @@
+<resources>
+    <color name="purple_500">#FF6200EE</color>
+    <color name="bg_dark">#FF1A1A2E</color>
+    <color name="card_dark">#FF252540</color>
+    <color name="accent">#FFFFA940</color>
+    <color name="text_primary">#FFFFFFFF</color>
+    <color name="text_secondary">#FFAAAAAA</color>
+    <color name="btn_primary">#FF4CAF50</color>
+</resources>
