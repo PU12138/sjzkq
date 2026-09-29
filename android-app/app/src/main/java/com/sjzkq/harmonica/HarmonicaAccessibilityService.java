@@ -223,18 +223,20 @@ public class HarmonicaAccessibilityService extends AccessibilityService {
     public boolean isPlaying() { return isPlaying; }
     public boolean isPaused() { return isPaused; }
 
-    // 回调通知（由 MainActivity 设置）
+    // 回调通知（支持多个监听器）
     public interface PlayListener {
         void onNotePlay(int loop, int idx, int total, SheetParser.Note note);
         void onPlayEnd();
     }
-    private PlayListener listener;
-    public void setPlayListener(PlayListener l) { this.listener = l; }
+    private final java.util.List<PlayListener> listeners = new java.util.ArrayList<>();
+    public void addPlayListener(PlayListener l) { if (l != null) listeners.add(l); }
+    public void removePlayListener(PlayListener l) { listeners.remove(l); }
+    public void setPlayListener(PlayListener l) { listeners.clear(); if (l != null) listeners.add(l); }
 
     private void onNotePlay(int loop, int idx, int total, SheetParser.Note note) {
-        if (listener != null) listener.onNotePlay(loop, idx, total, note);
+        for (PlayListener l : listeners) l.onNotePlay(loop, idx, total, note);
     }
     private void onPlayEnd() {
-        if (listener != null) listener.onPlayEnd();
+        for (PlayListener l : listeners) l.onPlayEnd();
     }
 }
